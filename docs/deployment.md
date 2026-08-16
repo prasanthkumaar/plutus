@@ -234,7 +234,7 @@ branches or discards files.
 ```sh
 PLUTUS_REVIEWED_SHA="<reviewed-commit-sha>"
 
-if [ -n "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain=v1 --untracked-files=all)" ]; then
   echo "Stop: the worktree is not clean." >&2
   exit 1
 fi
@@ -350,3 +350,4 @@ delete the tenant as part of this runbook.
 - [Vercel ignored files and folders](https://vercel.com/docs/builds/build-features#ignored-files-and-folders)
 - [Vercel staged Production deployments](https://vercel.com/docs/cli/deploying-from-cli#deploying-a-staged-production-build)
 - [Vercel deployment promotion](https://vercel.com/docs/deployments/promoting-a-deployment)
+- [Git status porcelain and untracked-file options](https://git-scm.com/docs/git-status)
