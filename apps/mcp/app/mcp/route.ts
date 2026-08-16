@@ -1,5 +1,10 @@
-import { createMcpHandler } from "mcp-handler";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 
+import {
+  foundationScope,
+  protectedResourceMetadataPath,
+} from "@/src/auth/constants";
+import { verifyAuth0AccessToken } from "@/src/auth/verify-token";
 import { configureMcpServer } from "@/src/server";
 
 const handler = createMcpHandler(configureMcpServer, {
@@ -9,4 +14,10 @@ const handler = createMcpHandler(configureMcpServer, {
   },
 });
 
-export { handler as GET, handler as POST };
+const authenticatedHandler = withMcpAuth(handler, verifyAuth0AccessToken, {
+  required: true,
+  requiredScopes: [foundationScope],
+  resourceMetadataPath: protectedResourceMetadataPath,
+});
+
+export { authenticatedHandler as GET, authenticatedHandler as POST };

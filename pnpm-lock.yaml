@@ -13,6 +13,9 @@ importers:
       '@modelcontextprotocol/server':
         specifier: ^2.0.0
         version: 2.0.0
+      jose:
+        specifier: ^6.2.9
+        version: 6.2.9
       mcp-handler:
         specifier: ^2.0.0
         version: 2.1.1(@modelcontextprotocol/server@2.0.0)(next@15.5.23(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
