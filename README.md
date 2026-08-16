@@ -95,8 +95,11 @@ canonical URI.
 Verify a preview without a bearer token: check its `401` challenge, follow its
 `resource_metadata` URL and confirm the metadata `resource` is the preview
 `/mcp` URL. Do not start OAuth or run the token-bearing verification command
-against a per-deployment preview. Promote the exact verified artefact first,
-then perform authenticated verification at the canonical production resource.
+against a per-deployment preview. After the owner gates pass, build a staged
+Production deployment from the same verified commit with Production environment
+variables, verify that staged URL without credentials, then promote that exact
+Production deployment to the canonical domain. Perform authenticated
+verification only at the canonical production resource.
 
 The automated integration test uses a controlled local issuer and signed test
 tokens. It does not contact or modify a live Auth0 tenant. Run it and the

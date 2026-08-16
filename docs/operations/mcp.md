@@ -17,8 +17,10 @@ secret values out of the repository, terminal output and deployment records.
 The production hostname is not ready for private use. It currently points to
 PR #7's unauthenticated deployment at commit `cc65d5a`. Do not send production
 data to it or attempt OAuth there. It becomes the private MCP resource only
-after the owner gates below pass and the exact secured preview artefact is
-promoted without rebuilding.
+after the owner gates below pass, a staged Production deployment is built from
+the verified Preview commit with Production environment variables, that staged
+URL is verified, and the exact staged Production deployment is promoted to the
+canonical domain without another rebuild.
 
 Vercel stores `AUTH0_ISSUER` and `AUTH0_AUDIENCE` as sensitive values for the
 Preview and Production environments. Do not retrieve or print their values.
@@ -33,9 +35,10 @@ unauthenticated.
 
 Issue #6 must remain open. Google-only login, client registration, the owner's
 direct permission assignment, real Codex OAuth, permission denial, access-token
-refresh, grant and refresh-family revocation, Auth0 log evidence, Fluid Compute
-confirmation, exact-artefact production promotion and production verification
-all remain owner-gated.
+refresh, explicit application-grant revocation, refresh-family invalidation,
+Auth0 log evidence, Fluid Compute confirmation, staged Production deployment,
+exact staged-deployment promotion and production verification all remain
+owner-gated.
 
 ## Auth0 Dashboard release gates
 
@@ -79,14 +82,17 @@ before a production release:
    [with expiration](https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-expiration),
    a maximum lifetime of 30 days, an idle lifetime of 7 days and a short
    rotation overlap period. Keep automatic reuse detection enabled. Reuse of an
-   invalidated token must revoke its refresh-token family and grant, requiring
-   fresh authentication.
+   invalidated token must invalidate its refresh-token family and require fresh
+   authentication. Treat this family-containment behaviour as distinct from
+   explicit application-grant revocation.
 7. Confirm the tenant's
-   [refresh-token revocation semantics](https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens).
-   Dashboard revocation under the user's **Authorized Applications**
-   invalidates refresh tokens for that application. It does not invalidate an
-   already issued access token, which can remain valid for its 600-second
-   lifetime.
+   [refresh-token and grant revocation semantics](https://auth0.com/docs/secure/tokens/refresh-tokens/revoke-refresh-tokens).
+   **Refresh Token Revocation Deletes Grant** under **Tenant Settings >
+   Advanced** controls whether token revocation also deletes the underlying
+   grant, and is disabled by default for newer tenants. Separately verify
+   explicit application-grant revocation under the user's **Authorized
+   Applications**. Neither operation invalidates an already issued access token,
+   which can remain valid for its 600-second lifetime.
 
 Keep Auth0 administrative tooling logged out or restricted to read-only tools
 after any change. The deployment does not require standing Auth0 Management API
@@ -127,24 +133,50 @@ artefact without a bearer token:
 
 Do not register the preview in Codex, start OAuth or send it a bearer token.
 Plutus has one canonical production Auth0 API and no preview audience, so all
-authenticated checks belong at the canonical production resource after exact
-artefact promotion.
+authenticated checks belong at the canonical production resource after the
+staged Production deployment is promoted.
 
 Do not record bearer tokens, refresh tokens, Google credentials or Auth0
 administrative tokens as verification evidence.
 
-## Production promotion and verification
+## Staged Production release and canonical verification
 
-Production promotion is a separate owner approval gate. After every Auth0 and
-Vercel gate above passes, name the `plutus-mcp` project and exact preview
-deployment being promoted. Promote that verified artefact without rebuilding:
+Creating or promoting a Production deployment is a separate owner approval
+gate. After every Auth0 and Vercel gate above passes, name the `plutus-mcp`
+project, exact verified Preview deployment and its commit. From that same
+verified commit,
+[create a staged Production deployment](https://vercel.com/docs/cli/deploying-from-cli#deploying-a-staged-production-build)
+that uses Production environment variables but does not receive the canonical
+domain:
 
 ```sh
-vercel promote https://<exact-verified-preview-host>
+vercel --prod --skip-domain
 ```
 
-Only after promotion, register the canonical production resource and complete
-OAuth without copying tokens into commands, logs or chat:
+Do not
+[promote a Preview deployment directly](https://vercel.com/docs/deployments/promote-preview-to-production).
+Vercel rebuilds a promoted Preview with Production environment variables, so
+that flow would not promote the artefact that was tested. Instead, verify the
+exact staged Production URL without a bearer token:
+
+1. Confirm it is a Ready Production deployment for the expected commit.
+2. Request `/mcp` without credentials and verify the `401` Bearer challenge,
+   `access:plutus` and protected-resource metadata link.
+3. Request `/.well-known/oauth-protected-resource/mcp` and verify its resource
+   is the staged Production `/mcp` URL with one HTTPS authorisation server.
+4. Inspect that deployment's runtime errors and confirm it is healthy.
+
+Name the exact staged Production deployment, then promote that deployment URL
+to the canonical domain.
+[Promoting an existing staged Production deployment](https://vercel.com/docs/deployments/promoting-a-deployment#staging-and-promoting-a-production-deployment)
+assigns the domain without another build:
+
+```sh
+vercel promote https://<exact-staged-production-host>
+```
+
+Only after that promotion, register the canonical production resource and
+complete OAuth without copying tokens into commands, logs or chat:
 
 ```sh
 codex mcp add plutus --url https://plutus-mcp.vercel.app/mcp
@@ -161,21 +193,30 @@ Complete all remaining issue #6 checks at that canonical URI:
    assignment receives `403`.
 4. Wait for access-token expiry and invoke `echo` to prove refresh succeeds
    without exposing either token.
-5. Keep Codex logged in, revoke the user's application grant or refresh-token
-   family, wait for the current access token's 600-second maximum lifetime and
-   invoke `echo` again. Confirm refresh fails and Codex requires a new login,
-   then run `codex mcp logout plutus`.
-6. Inspect Auth0 logs for the successful login and deliberate denials, and
-   inspect Vercel production runtime errors. Record no credentials or token
-   values as evidence.
+5. Verify automatic reuse detection as a refresh-family gate. Use an
+   owner-controlled flow that does not expose token values, then confirm Auth0
+   records reuse detection, invalidates the family and requires fresh login
+   after the current access token expires. Do not count this as the explicit
+   application-grant revocation check.
+6. After a fresh login, keep Codex logged in and explicitly revoke the Codex
+   application under the user's **Authorized Applications**. Wait for the
+   current access token's 600-second maximum lifetime, invoke `echo` and confirm
+   refresh fails and Codex requires another login. Then run
+   `codex mcp logout plutus`.
+7. Inspect Auth0 logs for the successful login, reuse detection and deliberate
+   denials. Inspect Vercel production runtime errors. Record no credentials or
+   token values as evidence.
 
 Keep issue #6 open until this whole production sequence is complete.
 
 ## Access revocation
 
 To stop new access-token issuance and complete lockout within 600 seconds,
-remove `access:plutus` from the owner's Auth0 user, revoke the Codex application
-grant and revoke its refresh-token family. Keep Codex logged in until the
-existing access token expires, invoke `echo` and confirm the refresh attempt
-fails. Then run `codex mcp logout plutus` locally. Restore access by reassigning
-the permission and completing a fresh production login.
+remove `access:plutus` from the owner's Auth0 user and explicitly revoke the
+Codex application under **Authorized Applications**. Keep Codex logged in until
+the existing access token expires, invoke `echo` and confirm the refresh attempt
+fails. Then run `codex mcp logout plutus` locally. Automatic reuse detection is
+a separate containment mechanism: it invalidates the affected refresh-token
+family when an invalidated token is reused, but it is not a substitute for the
+explicit application-grant revocation gate. Restore access by reassigning the
+permission and completing a fresh production login.
