@@ -9,8 +9,7 @@ tools can build on.
 - `apps/mcp` contains the stateless Next.js MCP server.
 - `/mcp` exposes one read-only, idempotent `echo` tool.
 - Auth0-compatible OAuth protects the MCP endpoint.
-- There is no browser interface, deployment configuration or finance
-  integration in this foundation.
+- There is no browser interface or finance integration in this foundation.
 
 ## Requirements
 
@@ -108,3 +107,6 @@ pnpm test
 pnpm type-check
 pnpm build
 ```
+
+Production operation, Auth0 Dashboard gates and the preview-first release
+procedure are documented in [the MCP operations runbook](docs/operations/mcp.md).
