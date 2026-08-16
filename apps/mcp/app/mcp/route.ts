@@ -1,12 +1,21 @@
-import { createMcpHandler } from "mcp-handler";
+import { verifyClerkToken } from "@clerk/mcp-tools/next";
+import { auth } from "@clerk/nextjs/server";
+import { withMcpAuth } from "mcp-handler";
 
-import { configureMcpServer } from "@/src/server";
+import { createPlutusMcpHandler } from "@/src/handler";
 
-const handler = createMcpHandler(configureMcpServer, {
-  serverInfo: {
-    name: "plutus",
-    version: "0.1.0",
+const handler = createPlutusMcpHandler();
+
+const authHandler = withMcpAuth(
+  handler,
+  async (_, token) => {
+    const clerkAuth = await auth({ acceptsToken: "oauth_token" });
+    return verifyClerkToken(clerkAuth, token);
   },
-});
+  {
+    required: true,
+    resourceMetadataPath: "/.well-known/oauth-protected-resource/mcp",
+  },
+);
 
-export { handler as GET, handler as POST };
+export { authHandler as POST };

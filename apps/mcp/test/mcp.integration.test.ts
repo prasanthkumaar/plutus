@@ -1,24 +1,154 @@
 import assert from "node:assert/strict";
-import { spawn, type ChildProcess } from "node:child_process";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { once } from "node:events";
-import { createServer } from "node:net";
 import { after, before, test } from "node:test";
 
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import {
   Client,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
+import { withMcpAuth } from "mcp-handler";
+
+import {
+  GET as getAuthorizationServerMetadata,
+  OPTIONS as optionsAuthorizationServerMetadata,
+} from "../app/.well-known/oauth-authorization-server/route";
+import {
+  GET as getProtectedResourceMetadata,
+  OPTIONS as optionsProtectedResourceMetadata,
+} from "../app/.well-known/oauth-protected-resource/mcp/route";
+import { createPlutusMcpHandler } from "../src/handler";
 
 const host = "127.0.0.1";
-const serverReadyTimeoutMs = 30_000;
+const acceptedAccessToken = "accepted-clerk-oauth-token";
+const clerkFrontendApi = "https://clerk.test";
+const clerkAuthorizationServerMetadata = {
+  issuer: clerkFrontendApi,
+  authorization_endpoint: `${clerkFrontendApi}/oauth/authorize`,
+  token_endpoint: `${clerkFrontendApi}/oauth/token`,
+};
+const protectedResourceMetadataPath =
+  "/.well-known/oauth-protected-resource/mcp";
+const authorizationServerMetadataPath =
+  "/.well-known/oauth-authorization-server";
+const clerkPublishableKey = `pk_test_${Buffer.from("clerk.test$").toString("base64url")}`;
+
+type WebHandler = (request: Request) => Response | Promise<Response>;
 
 type StartedApplication = {
   origin: string;
   stop: () => Promise<void>;
 };
 
-async function findAvailablePort() {
-  const server = createServer();
+function verifyControlledClerkToken(
+  _request: Request,
+  bearerToken?: string,
+): AuthInfo | undefined {
+  if (bearerToken !== acceptedAccessToken) {
+    return undefined;
+  }
+
+  return {
+    token: bearerToken,
+    clientId: "controlled-clerk-oauth-client",
+    scopes: [],
+    extra: { userId: "controlled-clerk-user" },
+  };
+}
+
+function toWebHeaders(request: IncomingMessage) {
+  const headers = new Headers();
+
+  for (const [name, value] of Object.entries(request.headers)) {
+    for (const entry of Array.isArray(value) ? value : [value]) {
+      if (entry !== undefined) {
+        headers.append(name, entry);
+      }
+    }
+  }
+
+  return headers;
+}
+
+async function readRequestBody(request: IncomingMessage) {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks);
+}
+
+async function sendWebResponse(
+  webResponse: Response,
+  response: ServerResponse,
+) {
+  response.statusCode = webResponse.status;
+  webResponse.headers.forEach((value, name) => response.setHeader(name, value));
+  response.end(Buffer.from(await webResponse.arrayBuffer()));
+}
+
+async function startApplication(): Promise<StartedApplication> {
+  const mcpHandler = withMcpAuth(
+    createPlutusMcpHandler(),
+    verifyControlledClerkToken,
+    {
+      required: true,
+      resourceMetadataPath: protectedResourceMetadataPath,
+    },
+  );
+  const routes = new Map<string, WebHandler>([
+    ["POST /mcp", mcpHandler],
+    [
+      "GET /.well-known/oauth-protected-resource/mcp",
+      getProtectedResourceMetadata,
+    ],
+    [
+      "OPTIONS /.well-known/oauth-protected-resource/mcp",
+      optionsProtectedResourceMetadata,
+    ],
+    [
+      "GET /.well-known/oauth-authorization-server",
+      () => getAuthorizationServerMetadata(),
+    ],
+    [
+      "OPTIONS /.well-known/oauth-authorization-server",
+      optionsAuthorizationServerMetadata,
+    ],
+  ]);
+  const server = createServer(async (request, response) => {
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        throw new Error("The local test server has no TCP address");
+      }
+
+      const origin = `http://${host}:${address.port}`;
+      const requestUrl = new URL(request.url ?? "/", origin);
+      const route = routes.get(`${request.method} ${requestUrl.pathname}`);
+
+      if (!route) {
+        response.writeHead(404).end();
+        return;
+      }
+
+      const body = await readRequestBody(request);
+      const webRequest = new Request(requestUrl, {
+        method: request.method,
+        headers: toWebHeaders(request),
+        body: body.length > 0 ? new Uint8Array(body) : undefined,
+      });
+      await sendWebResponse(await route(webRequest), response);
+    } catch (error) {
+      response.writeHead(500).end(String(error));
+    }
+  });
   server.listen(0, host);
   await once(server, "listening");
 
@@ -28,75 +158,23 @@ async function findAvailablePort() {
     throw new Error("Could not allocate a local test port");
   }
 
-  const { port } = address;
-  server.close();
-  await once(server, "close");
-  return port;
-}
-
-async function waitForServer(origin: string, processLogs: string[]) {
-  const deadline = Date.now() + serverReadyTimeoutMs;
-
-  while (Date.now() < deadline) {
-    try {
-      await fetch(origin);
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }
-
-  throw new Error(`Next.js did not start in time.\n${processLogs.join("")}`);
-}
-
-async function stopProcess(application: ChildProcess) {
-  if (application.exitCode !== null) {
-    return;
-  }
-
-  application.kill("SIGTERM");
-  await once(application, "exit");
-}
-
-async function startApplication(): Promise<StartedApplication> {
-  const port = await findAvailablePort();
-  const origin = `http://${host}:${port}`;
-  const processLogs: string[] = [];
-  const nextBin = new URL("../node_modules/next/dist/bin/next", import.meta.url);
-  const application = spawn(
-    process.execPath,
-    [nextBin.pathname, "dev", "--hostname", host, "--port", String(port)],
-    {
-      cwd: new URL("../", import.meta.url),
-      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-
-  application.stdout.on("data", (chunk) => processLogs.push(chunk.toString()));
-  application.stderr.on("data", (chunk) => processLogs.push(chunk.toString()));
-
-  try {
-    await waitForServer(origin, processLogs);
-  } catch (error) {
-    await stopProcess(application);
-    throw error;
-  }
-
   return {
-    origin,
-    stop: () => stopProcess(application),
+    origin: `http://${host}:${address.port}`,
+    stop: async () => {
+      server.close();
+      await once(server, "close");
+    },
   };
 }
 
-async function connectClient(origin: string) {
+async function connectClient(origin: string, accessToken: string) {
   const client = new Client({
     name: "plutus-integration-test",
     version: "1.0.0",
   });
-  const transport = new StreamableHTTPClientTransport(
-    new URL("/mcp", origin),
-  );
+  const transport = new StreamableHTTPClientTransport(new URL("/mcp", origin), {
+    authProvider: { token: async () => accessToken },
+  });
   await client.connect(transport);
   return client;
 }
@@ -105,20 +183,63 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function getRequestUrl(input: RequestInfo | URL) {
+  return new URL(input instanceof Request ? input.url : input);
+}
+
+const originalFetch = globalThis.fetch;
 let application: StartedApplication | undefined;
 let client: Client | undefined;
 
 before(async () => {
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = clerkPublishableKey;
+  process.env.CLERK_SECRET_KEY = "controlled-test-secret-key";
+  globalThis.fetch = async (input, init) => {
+    const url = getRequestUrl(input);
+    if (url.href === `${clerkFrontendApi}${authorizationServerMetadataPath}`) {
+      return Response.json(clerkAuthorizationServerMetadata);
+    }
+
+    return originalFetch(input, init);
+  };
+
   application = await startApplication();
-  client = await connectClient(application.origin);
+  client = await connectClient(application.origin, acceptedAccessToken);
 });
 
 after(async () => {
   await client?.close();
   await application?.stop();
+  globalThis.fetch = originalFetch;
+  delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  delete process.env.CLERK_SECRET_KEY;
 });
 
-test("a client can discover and invoke the bounded echo tool over HTTP", async () => {
+test("an unauthenticated request is challenged before MCP execution", async () => {
+  assert.ok(application);
+
+  const response = await fetch(new URL("/mcp", application.origin), {
+    method: "POST",
+    body: "not-an-mcp-request",
+  });
+
+  assert.equal(response.status, 401);
+  assert.match(
+    response.headers.get("www-authenticate") ?? "",
+    /resource_metadata=".*\/\.well-known\/oauth-protected-resource\/mcp"/,
+  );
+});
+
+test("a rejected Clerk token cannot enter the MCP server", async () => {
+  assert.ok(application);
+  const { origin } = application;
+
+  await assert.rejects(() =>
+    connectClient(origin, "rejected-clerk-oauth-token"),
+  );
+});
+
+test("accepted Clerk authentication can discover and invoke the echo tool", async () => {
   assert.ok(client);
 
   const { tools } = await client.listTools();
@@ -160,3 +281,65 @@ test("the published schema rejects invalid echo input over HTTP", async () => {
     assert.equal(result.isError, true);
   }
 });
+
+test("protected-resource metadata advertises Clerk and standard scopes", async () => {
+  assert.ok(application);
+
+  const response = await fetch(
+    new URL(protectedResourceMetadataPath, application.origin),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    resource: application.origin,
+    authorization_servers: [clerkFrontendApi],
+    token_types_supported: ["urn:ietf:params:oauth:token-type:access_token"],
+    token_introspection_endpoint: `${clerkFrontendApi}/oauth/token`,
+    token_introspection_endpoint_auth_methods_supported: [
+      "client_secret_post",
+      "client_secret_basic",
+    ],
+    jwks_uri: `${clerkFrontendApi}/.well-known/jwks.json`,
+    authorization_data_types_supported: ["oauth_scope"],
+    authorization_data_locations_supported: ["header", "body"],
+    key_challenges_supported: [
+      {
+        challenge_type: "urn:ietf:params:oauth:pkce:code_challenge",
+        challenge_algs: ["S256"],
+      },
+    ],
+    service_documentation: "https://clerk.com/docs",
+    scopes_supported: ["openid", "profile", "email"],
+  });
+});
+
+test("authorization-server compatibility metadata is public", async () => {
+  assert.ok(application);
+
+  const response = await fetch(
+    new URL(authorizationServerMetadataPath, application.origin),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), clerkAuthorizationServerMetadata);
+});
+
+for (const metadataPath of [
+  protectedResourceMetadataPath,
+  authorizationServerMetadataPath,
+]) {
+  test(`metadata CORS is public at ${metadataPath}`, async () => {
+    assert.ok(application);
+
+    const response = await fetch(new URL(metadataPath, application.origin), {
+      method: "OPTIONS",
+    });
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), "*");
+    assert.equal(
+      response.headers.get("access-control-allow-methods"),
+      "GET, OPTIONS",
+    );
+  });
+}
