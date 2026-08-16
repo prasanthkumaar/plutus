@@ -9,8 +9,7 @@ tools can build on.
 - `apps/mcp` contains the stateless Next.js MCP server.
 - `/mcp` exposes one read-only, idempotent `echo` tool.
 - Clerk OAuth protects the MCP endpoint.
-- There is no browser interface, deployment configuration or finance
-  integration in this foundation.
+- There is no browser interface or finance integration in this foundation.
 
 ## Requirements
 
@@ -101,3 +100,9 @@ pnpm test
 pnpm type-check
 pnpm build
 ```
+
+## Deploy
+
+Follow the [Clerk and Vercel deployment runbook](docs/deployment.md). It keeps
+development keys in local and Preview environments and treats the owned-domain
+Clerk Production setup as a separate owner-controlled step.
