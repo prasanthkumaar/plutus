@@ -16,6 +16,7 @@ The following non-secret facts were checked while preparing this runbook:
 | Area | Recorded state |
 | --- | --- |
 | Clerk | The **Plutus** application exists with ID `app_3I0IdbSIAVL38CeHRH9S1WJ83IF`. Its Development instance is Invite-only, password and email-code sign-in are disabled, and Google is enabled. |
+| Clerk plan | Not verified. The owner must confirm the account containing Plutus is still on the free **Hobby** plan before either deployment stage. |
 | Vercel | The **plutus-mcp** project exists on the owner's personal team. Its latest foundation Preview was healthy. |
 | Production | No Clerk Production instance or production deployment is assumed. An owned domain and DNS access are still required. |
 
@@ -45,6 +46,17 @@ Plutus needs only these Clerk environment variables:
 The publishable key is public configuration. The secret key must remain
 server-only. Vercel environment changes affect only new deployments, so deploy
 again after changing a value.
+
+## Confirm the free plan
+
+Before configuring Preview, select the Plutus application in the Clerk
+Dashboard and open the account's plan view. Confirm the current plan is
+**Hobby**, which Clerk lists as its free plan. Record only the plan name and
+check date. Do not record billing details.
+
+Repeat this check immediately before configuring Production. Stop if the plan
+is no longer Hobby or a requested setting requires an upgrade. This runbook
+does not authorise a paid plan or add-on.
 
 ## 1. Finish the Clerk Development instance
 
@@ -86,7 +98,9 @@ The Clerk consent screen is mandatory while DCR is enabled.
 
 Some clients omit `scope`. Configure default scopes only if the actual Codex
 connection does so. The Clerk Dashboard setting is under **OAuth applications >
-Default scopes**. Clerk documents this equivalent CLI call:
+Default scopes**. Clerk documents the Backend API CLI shape; Plutus adds the
+documented `offline_access` scope to that shape so Codex can refresh while the
+owner is away. The reviewed Plutus command is:
 
 ```sh
 npx clerk@latest api instance/oauth_application_settings -X PATCH -d '{"default_scopes":["openid","profile","email","offline_access"]}'
@@ -210,18 +224,33 @@ Production values for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and
 reviewed-branch Preview still use the Development values, while other Preview
 branches receive neither Clerk key.
 
-From the linked Vercel project root, build a Production deployment without
-assigning the production domain:
+From the linked Vercel project root, replace `<reviewed-commit-sha>` with the
+exact SHA that passed review. The preflight below stops if the worktree contains
+any tracked or untracked change, or if `HEAD` is not that reviewed commit. It
+does not change branches or discard files.
 
 ```sh
+PLUTUS_REVIEWED_SHA="<reviewed-commit-sha>"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Stop: the worktree is not clean." >&2
+  exit 1
+fi
+
+PLUTUS_CURRENT_SHA="$(git rev-parse HEAD)"
+if [ "$PLUTUS_CURRENT_SHA" != "$PLUTUS_REVIEWED_SHA" ]; then
+  echo "Stop: HEAD does not match the reviewed commit." >&2
+  exit 1
+fi
+
 vercel --prod --skip-domain
 ```
 
-Record the returned staged deployment URL and the reviewed commit. Check its
-build, public metadata, CORS, unauthenticated OAuth challenge and runtime health.
-Do not run browser OAuth on the generated staged `*.vercel.app` URL because the
-Clerk Production instance and Google client are configured for the owned
-domain.
+Record the returned staged deployment URL together with
+`$PLUTUS_CURRENT_SHA`. Check its build, public metadata, CORS, unauthenticated
+OAuth challenge and runtime health. Do not run browser OAuth on the generated
+staged `*.vercel.app` URL because the Clerk Production instance and Google
+client are configured for the owned domain.
 
 Promote that exact staged Production deployment without rebuilding:
 
@@ -288,6 +317,7 @@ delete the tenant as part of this runbook.
 
 - [Clerk Next.js MCP server guide](https://clerk.com/docs/nextjs/guides/ai/mcp/build-mcp-server)
 - [Clerk OAuth behaviour and client registration](https://clerk.com/docs/guides/configure/auth-strategies/oauth/how-clerk-implements-oauth)
+- [Clerk pricing](https://clerk.com/pricing)
 - [Clerk access modes](https://clerk.com/docs/guides/secure/restricting-access)
 - [Clerk Google connection](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)
 - [Clerk production deployment](https://clerk.com/docs/guides/development/deployment/production)
