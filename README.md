@@ -74,6 +74,31 @@ client to discover and invoke `echo`:
 pnpm verify:mcp -- http://127.0.0.1:3000
 ```
 
+Loopback verification needs no additional trust setting. For a remote server,
+the command accepts only HTTPS and requires an explicit, exact origin match
+before it constructs the token-bearing transport:
+
+```sh
+PLUTUS_MCP_TRUSTED_ORIGIN=https://plutus.example \
+  pnpm verify:mcp -- https://plutus.example
+```
+
+### Preview boundary
+
+[RFC 9728 requires](https://www.rfc-editor.org/rfc/rfc9728.html#section-3.3)
+protected-resource metadata to identify the exact resource URL the client
+requested. A preview deployment therefore advertises its own preview `/mcp`
+URL, while this foundation deliberately keeps `AUTH0_AUDIENCE` as the single
+canonical production `/mcp` URI. The [MCP authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#resource-parameter-implementation)
+requires clients to identify the MCP resource they intend to use by its
+canonical URI.
+
+Verify a preview without a bearer token: check its `401` challenge, follow its
+`resource_metadata` URL and confirm the metadata `resource` is the preview
+`/mcp` URL. Do not start OAuth or run the token-bearing verification command
+against a per-deployment preview. Promote the exact verified artefact first,
+then perform authenticated verification at the canonical production resource.
+
 The automated integration test uses a controlled local issuer and signed test
 tokens. It does not contact or modify a live Auth0 tenant. Run it and the
 supporting checks with:
