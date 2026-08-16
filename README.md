@@ -35,6 +35,9 @@ Do not commit either value. The publishable key identifies the Clerk frontend
 API used by the OAuth metadata helpers. The secret key remains server-only and
 is used by Clerk's Next.js authentication middleware.
 
+Protected-resource metadata advertises `openid`, `profile`, `email` and
+`offline_access`. Clerk uses `offline_access` to grant refresh-token access.
+
 For this private foundation, configure the Clerk application outside the
 repository with Invite-only access, invite only the owner, enable only Google
 sign-in and switch off **Generate access tokens as JWTs**. Plutus intentionally
