@@ -37,10 +37,10 @@ infrastructure:
 
 Plutus needs only these Clerk environment variables:
 
-| Variable | Development and Preview | Production |
-| --- | --- | --- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Development publishable key | Production publishable key |
-| `CLERK_SECRET_KEY` | Development secret key | Production secret key |
+| Variable | Development | Reviewed-branch Preview | Production |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Development publishable key | Development publishable key | Production publishable key |
+| `CLERK_SECRET_KEY` | Development secret key | Development secret key | Production secret key |
 
 The publishable key is public configuration. The secret key must remain
 server-only. Vercel environment changes affect only new deployments, so deploy
@@ -103,11 +103,21 @@ In Vercel, open the owner's **plutus-mcp** project.
 
 1. Under **Settings > Build and Deployment**, confirm **Root Directory** is
    `apps/mcp`.
-2. Under **Settings > Environment Variables**, add the Clerk Development values
-   for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to **Preview**
-   and **Development** only. Do not assign them to Production.
-3. Push the reviewed branch or open its PR to create a new Preview deployment.
-4. Record the commit-specific Preview URL and commit SHA. Do not treat a moving
+2. Under **Settings > Security**, confirm **Git Fork Protection** remains
+   enabled. Never approve or deploy an untrusted fork with Clerk credentials.
+   Fork protection requires owner or team-member authorisation before a fork PR
+   can deploy and protects environment variables from untrusted code.
+3. Under **Settings > Environment Variables**, add the Clerk Development values
+   for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to
+   **Development**.
+4. Add the same Development values to **Preview**, selecting only the exact
+   reviewed Git branch used for this test. For this stack, that branch is
+   `feat/issue-6-clerk-deployment`. Do not apply either value to all
+   non-production branches, and remove any project-wide Preview copy before
+   testing so another branch cannot inherit the credentials.
+5. Do not assign the Development values to Production.
+6. Push the reviewed branch or open its PR to create a new Preview deployment.
+7. Record the commit-specific Preview URL and commit SHA. Do not treat a moving
    branch URL as release evidence.
 
 Use a task-specific shell variable for the public checks:
@@ -196,8 +206,9 @@ Production cannot use Clerk's shared Google credentials.
 
 In **Vercel > plutus-mcp > Settings > Environment Variables**, assign the Clerk
 Production values for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and
-`CLERK_SECRET_KEY` to **Production** only. Confirm Development and Preview still
-use the Development values.
+`CLERK_SECRET_KEY` to **Production** only. Confirm Development and the exact
+reviewed-branch Preview still use the Development values, while other Preview
+branches receive neither Clerk key.
 
 From the linked Vercel project root, build a Production deployment without
 assigning the production domain:
@@ -284,5 +295,6 @@ delete the tenant as part of this runbook.
 - [Clerk OAuth token revocation](https://clerk.com/docs/reference/backend/oauth-applications/revoke-token)
 - [Clerk Secret Key rotation](https://clerk.com/docs/guides/secure/rotate-api-keys)
 - [Vercel environment variables](https://vercel.com/docs/environment-variables)
+- [Vercel security settings and Git Fork Protection](https://vercel.com/docs/project-configuration/security-settings)
 - [Vercel staged Production deployments](https://vercel.com/docs/cli/deploying-from-cli#deploying-a-staged-production-build)
 - [Vercel deployment promotion](https://vercel.com/docs/deployments/promoting-a-deployment)
