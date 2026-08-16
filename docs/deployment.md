@@ -226,8 +226,10 @@ branches receive neither Clerk key.
 
 From the linked Vercel project root, replace `<reviewed-commit-sha>` with the
 exact SHA that passed review. The preflight below stops if the worktree contains
-any tracked or untracked change, or if `HEAD` is not that reviewed commit. It
-does not change branches or discard files.
+tracked changes or non-ignored untracked files, or if `HEAD` is not that
+reviewed commit. Git's porcelain status does not report ignored files, so the
+Vercel manifest check that follows is still required. Neither check changes
+branches or discards files.
 
 ```sh
 PLUTUS_REVIEWED_SHA="<reviewed-commit-sha>"
@@ -242,7 +244,25 @@ if [ "$PLUTUS_CURRENT_SHA" != "$PLUTUS_REVIEWED_SHA" ]; then
   echo "Stop: HEAD does not match the reviewed commit." >&2
   exit 1
 fi
+```
 
+Use Vercel CLI `v54.17.2` or newer to generate the exact upload manifest without
+uploading code or creating a deployment:
+
+```sh
+vercel deploy --dry --format=json
+```
+
+Inspect the JSON `included` file manifest before continuing. It should contain
+only the intended Plutus project files and dependencies. Confirm it contains no
+environment files, credential files, token output, temporary artifacts or
+other local-only material. Also review the ignored paths against Vercel's
+documented defaults and any project `.vercelignore`. Stop if any included or
+missing path is unexpected; fix and review that source change separately.
+
+Only after both preflights pass, create the staged Production deployment:
+
+```sh
 vercel --prod --skip-domain
 ```
 
@@ -326,5 +346,7 @@ delete the tenant as part of this runbook.
 - [Clerk Secret Key rotation](https://clerk.com/docs/guides/secure/rotate-api-keys)
 - [Vercel environment variables](https://vercel.com/docs/environment-variables)
 - [Vercel security settings and Git Fork Protection](https://vercel.com/docs/project-configuration/security-settings)
+- [Vercel dry-run deployment manifests](https://vercel.com/changelog/dry-run-deployments-with-vercel-cli)
+- [Vercel ignored files and folders](https://vercel.com/docs/builds/build-features#ignored-files-and-folders)
 - [Vercel staged Production deployments](https://vercel.com/docs/cli/deploying-from-cli#deploying-a-staged-production-build)
 - [Vercel deployment promotion](https://vercel.com/docs/deployments/promoting-a-deployment)
