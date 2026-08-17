@@ -100,18 +100,21 @@ The Clerk consent screen is mandatory while DCR is enabled.
 
 Some clients omit `scope`. Configure default scopes only if the actual Codex
 connection does so. The Clerk Dashboard setting is under **OAuth applications >
-Default scopes**. Clerk documents the Backend API CLI shape; Plutus adds the
-documented `offline_access` scope to that shape so Codex can refresh while the
-owner is away. The reviewed Plutus command is:
+Default scopes**. Clerk accepts the identity scopes in this setting; request
+`offline_access` separately when Codex logs in. The reviewed Plutus commands
+are:
 
 ```sh
-npx clerk@latest api instance/oauth_application_settings -X PATCH -d '{"default_scopes":["openid","profile","email","offline_access"]}'
+npx clerk@latest api instance/oauth_application_settings -X PATCH -d '{"default_scopes":["openid","profile","email"]}'
+codex mcp login plutus --scopes openid,profile,email,offline_access
 ```
 
 Before using the CLI, confirm it targets the Plutus application and the intended
-instance. Use `openid`, `profile`, `email` and `offline_access`. Clerk documents
-`offline_access` as the standard scope that grants refresh-token access while
-the owner is not actively using Codex. Do not add custom scopes.
+instance. Clerk rejects `offline_access` in `default_scopes`, but accepts it as
+the standard request-time scope that grants refresh-token access while the owner
+is not actively using Codex. Confirm the registered Codex application has
+`openid`, `profile`, `email` and `offline_access`, then disable DCR. Do not add
+custom scopes.
 
 ## 2. Configure and verify a Vercel Preview
 
