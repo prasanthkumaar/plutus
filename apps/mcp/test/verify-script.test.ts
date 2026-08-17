@@ -63,7 +63,7 @@ async function startTokenReflectingServer() {
 }
 
 test("verification requires a Clerk OAuth access token", () => {
-  const result = runVerification("http://127.0.0.1:3000");
+  const result = runVerification("http://localhost:3000");
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /PLUTUS_MCP_ACCESS_TOKEN is required/);

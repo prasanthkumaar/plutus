@@ -5,7 +5,7 @@ import {
 
 const origin =
   process.argv.slice(2).find((argument) => argument !== "--") ??
-  "http://127.0.0.1:3000";
+  "http://localhost:3000";
 const endpoint = new URL("/mcp", `${origin}/`);
 
 async function main() {

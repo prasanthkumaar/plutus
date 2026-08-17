@@ -50,7 +50,7 @@ scope check.
 
 ## Run locally
 
-Start the MCP server, which listens only on `127.0.0.1` by default:
+Start the MCP server, which listens only on `localhost` by default:
 
 ```sh
 pnpm dev:1password
@@ -60,7 +60,7 @@ pnpm dev:1password
 to the development process. Plain `pnpm dev` remains available when the
 variables are already present in the shell environment.
 
-The MCP endpoint is available at `http://127.0.0.1:3000/mcp`.
+The MCP endpoint is available at `http://localhost:3000/mcp`.
 OAuth discovery is public at:
 
 - `/.well-known/oauth-protected-resource/mcp`
@@ -88,7 +88,7 @@ record the value in the repository or command history. Then use the official
 MCP TypeScript SDK v2 client to discover the tool and invoke `echo`:
 
 ```sh
-pnpm verify:mcp -- http://127.0.0.1:3000
+pnpm verify:mcp -- http://localhost:3000
 ```
 
 The verification script sends the token as a bearer token and redacts it from
