@@ -40,12 +40,14 @@ Plutus needs only these Clerk environment variables:
 
 | Variable | Development | Reviewed-branch Preview | Production |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Development publishable key | Development publishable key | Production publishable key |
-| `CLERK_SECRET_KEY` | Development secret key | Development secret key | Production secret key |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Development publishable key resolved from 1Password | Development publishable key in branch-scoped Vercel Preview | Production publishable key in Vercel Production |
+| `CLERK_SECRET_KEY` | Development secret key resolved from 1Password | Development secret key in branch-scoped Vercel Preview | Production secret key in Vercel Production |
 
 The publishable key is public configuration. The secret key must remain
-server-only. Vercel environment changes affect only new deployments, so deploy
-again after changing a value.
+server-only. Local development runs `pnpm dev:1password`, which resolves the
+repository-wide `.env.schema` only for the lifetime of the process. Vercel
+environment changes affect only new deployments, so deploy again after changing
+a Preview or Production value.
 
 ## Confirm the free plan
 
@@ -123,15 +125,14 @@ In Vercel, open the owner's **plutus-mcp** project.
    can deploy and protects environment variables from untrusted code.
 3. Under **Settings > Environment Variables**, add the Clerk Development values
    for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to
-   **Development**.
-4. Add the same Development values to **Preview**, selecting only the exact
-   reviewed Git branch used for this test. For this stack, that branch is
+   **Preview**, selecting only the exact reviewed Git branch used for this
+   test. For this stack, that branch is
    `feat/issue-6-clerk-deployment`. Do not apply either value to all
    non-production branches, and remove any project-wide Preview copy before
    testing so another branch cannot inherit the credentials.
-5. Do not assign the Development values to Production.
-6. Push the reviewed branch or open its PR to create a new Preview deployment.
-7. Record the commit-specific Preview URL and commit SHA. Do not treat a moving
+4. Do not assign the Development values to Production.
+5. Push the reviewed branch or open its PR to create a new Preview deployment.
+6. Record the commit-specific Preview URL and commit SHA. Do not treat a moving
    branch URL as release evidence.
 
 Use a task-specific shell variable for the public checks:
@@ -220,9 +221,10 @@ Production cannot use Clerk's shared Google credentials.
 
 In **Vercel > plutus-mcp > Settings > Environment Variables**, assign the Clerk
 Production values for `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and
-`CLERK_SECRET_KEY` to **Production** only. Confirm Development and the exact
-reviewed-branch Preview still use the Development values, while other Preview
-branches receive neither Clerk key.
+`CLERK_SECRET_KEY` to **Production** only. Confirm the exact reviewed-branch
+Preview still uses the Development values, while other Preview branches receive
+neither Clerk key. Local Development continues to resolve its values from
+1Password rather than Vercel.
 
 From the linked Vercel project root, replace `<reviewed-commit-sha>` with the
 exact SHA that passed review. The preflight below stops if the worktree contains
@@ -310,7 +312,8 @@ Clerk client or account recovery action in the Dashboard rather than guessing.
 ### Leaked `CLERK_SECRET_KEY`
 
 1. Add a new named Secret Key in the affected Clerk instance.
-2. Replace `CLERK_SECRET_KEY` in the matching Vercel environment.
+2. For Development, replace the 1Password field and the exact-branch Vercel
+   Preview value. For Production, replace only the Vercel Production value.
 3. Redeploy and verify Clerk-backed requests use the new key.
 4. Only then delete the old key in Clerk.
 
@@ -344,6 +347,7 @@ delete the tenant as part of this runbook.
 - [Clerk on Vercel](https://clerk.com/docs/guides/development/deployment/vercel)
 - [Clerk OAuth token revocation](https://clerk.com/docs/reference/backend/oauth-applications/revoke-token)
 - [Clerk Secret Key rotation](https://clerk.com/docs/guides/secure/rotate-api-keys)
+- [1Password CLI environment injection](https://www.1password.dev/cli/secrets-environment-variables)
 - [Vercel environment variables](https://vercel.com/docs/environment-variables)
 - [Vercel security settings and Git Fork Protection](https://vercel.com/docs/project-configuration/security-settings)
 - [Vercel dry-run deployment manifests](https://vercel.com/changelog/dry-run-deployments-with-vercel-cli)
