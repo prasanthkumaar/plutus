@@ -16,6 +16,8 @@ tools can build on.
 
 - Node.js 20 or newer
 - pnpm 10.34.5
+- 1Password CLI 2.32 or newer, signed in to the account containing the
+  development Clerk keys
 
 Install the workspace from the repository root:
 
@@ -25,15 +27,17 @@ pnpm install
 
 ## Configure Clerk
 
-Create a Clerk application and copy `apps/mcp/.env.example` to
-`apps/mcp/.env.local`. Add the application's development keys:
+Create a Clerk application and store its development keys in the 1Password
+fields referenced by the repository-wide `.env.schema`:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 
-Do not commit either value. The publishable key identifies the Clerk frontend
-API used by the OAuth metadata helpers. The secret key remains server-only and
-is used by Clerk's Next.js authentication middleware.
+The schema contains only 1Password secret-reference URIs and is safe to commit.
+Do not replace those references with either value. The publishable key
+identifies the Clerk frontend API used by the OAuth metadata helpers. The secret
+key remains server-only and is used by Clerk's Next.js authentication
+middleware.
 
 Protected-resource metadata advertises `openid`, `profile`, `email` and
 `offline_access`. Clerk uses `offline_access` to grant refresh-token access.
@@ -49,8 +53,12 @@ scope check.
 Start the MCP server, which listens only on `127.0.0.1` by default:
 
 ```sh
-pnpm dev
+pnpm dev:1password
 ```
+
+`op run` resolves the root `.env.schema` and provides the two Clerk values only
+to the development process. Plain `pnpm dev` remains available when the
+variables are already present in the shell environment.
 
 The MCP endpoint is available at `http://127.0.0.1:3000/mcp`.
 OAuth discovery is public at:
