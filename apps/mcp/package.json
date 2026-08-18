@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
-    "start": "next start",
+    "dev": "next dev --hostname localhost",
+    "start": "next start --hostname localhost",
     "test": "tsx --test test/*.test.ts",
     "type-check": "tsc --noEmit"
   },
