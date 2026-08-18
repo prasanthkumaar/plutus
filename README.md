@@ -24,24 +24,18 @@ pnpm install
 
 ## Run locally
 
-Start the MCP server, which listens only on `127.0.0.1` by default:
+Start the MCP server:
 
 ```sh
 pnpm dev
 ```
 
-The MCP endpoint is available at `http://127.0.0.1:3000/mcp`.
+The MCP endpoint is available at `http://localhost:3000/mcp`.
 
-## Verify MCP
+## Verify
 
-With the development server running, use the official MCP TypeScript SDK v2
-client to discover the tool and invoke `echo` through the HTTP endpoint:
-
-```sh
-pnpm verify:mcp -- http://127.0.0.1:3000
-```
-
-Run the automated HTTP integration test and supporting checks with:
+The integration test starts the application and uses the official MCP
+TypeScript SDK v2 client against the `/mcp` HTTP endpoint:
 
 ```sh
 pnpm test

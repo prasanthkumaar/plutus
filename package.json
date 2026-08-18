@@ -9,7 +9,6 @@
     "build": "pnpm --filter @plutus/mcp-server build",
     "dev": "pnpm --filter @plutus/mcp-server dev",
     "test": "pnpm --filter @plutus/mcp-server test",
-    "type-check": "pnpm --filter @plutus/mcp-server type-check",
-    "verify:mcp": "pnpm --filter @plutus/mcp-server verify:mcp"
+    "type-check": "pnpm --filter @plutus/mcp-server type-check"
   }
 }

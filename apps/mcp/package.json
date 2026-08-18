@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev --hostname 127.0.0.1",
-    "start": "next start --hostname 127.0.0.1",
+    "dev": "next dev",
+    "start": "next start",
     "test": "tsx --test test/*.test.ts",
-    "type-check": "tsc --noEmit",
-    "verify:mcp": "tsx scripts/verify.ts"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
