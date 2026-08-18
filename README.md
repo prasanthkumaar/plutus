@@ -33,8 +33,7 @@ references:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 
-`apps/mcp/.env.example` documents the same names without values. Do not create
-or commit a plaintext environment file.
+Do not create or commit a plaintext environment file.
 
 ## Run locally
 
