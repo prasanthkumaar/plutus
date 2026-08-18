@@ -309,7 +309,7 @@ test("protected-resource metadata advertises Clerk and standard scopes", async (
       },
     ],
     service_documentation: "https://clerk.com/docs",
-    scopes_supported: ["openid", "profile", "email", "offline_access"],
+    scopes_supported: ["openid", "profile", "email"],
   });
 });
 

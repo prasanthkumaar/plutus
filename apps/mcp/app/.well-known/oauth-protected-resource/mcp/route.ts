@@ -4,7 +4,7 @@ import {
 } from "@clerk/mcp-tools/next";
 
 const handler = protectedResourceHandlerClerk({
-  scopes_supported: ["openid", "profile", "email", "offline_access"],
+  scopes_supported: ["openid", "profile", "email"],
 });
 const corsHandler = metadataCorsOptionsRequestHandler();
 
