@@ -1,12 +1,5 @@
-import { createMcpHandler } from "mcp-handler";
+import { createPlutusMcpHandler } from "@/src/mcp/server";
 
-import { configureMcpServer } from "@/src/server";
-
-const handler = createMcpHandler(configureMcpServer, {
-  serverInfo: {
-    name: "plutus",
-    version: "0.1.0",
-  },
-});
+const handler = createPlutusMcpHandler();
 
 export { handler as GET, handler as POST };

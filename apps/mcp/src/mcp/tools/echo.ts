@@ -17,8 +17,8 @@ const echoOutputSchema = z
   })
   .strict();
 
-/** Registers every capability exposed by the Plutus MCP server. */
-export function configureMcpServer(server: McpServer) {
+/** Registers the bounded echo tool used to verify the MCP foundation. */
+export function registerEchoTool(server: McpServer) {
   server.registerTool(
     "echo",
     {
