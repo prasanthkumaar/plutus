@@ -22,7 +22,7 @@ import {
   GET as getProtectedResourceMetadata,
   OPTIONS as optionsProtectedResourceMetadata,
 } from "../app/.well-known/oauth-protected-resource/mcp/route";
-import { createPlutusMcpHandler } from "../src/mcp/server";
+import { createShMcpHandler } from "../src/mcp/server";
 
 const host = "127.0.0.1";
 const acceptedAccessToken = "accepted-clerk-oauth-token";
@@ -96,7 +96,7 @@ async function sendWebResponse(
 
 async function startApplication(): Promise<StartedApplication> {
   const mcpHandler = withMcpAuth(
-    createPlutusMcpHandler(),
+    createShMcpHandler(),
     verifyControlledClerkToken,
     {
       required: true,
@@ -169,7 +169,7 @@ async function startApplication(): Promise<StartedApplication> {
 
 async function connectClient(origin: string, accessToken: string) {
   const client = new Client({
-    name: "plutus-integration-test",
+    name: "sh-integration-test",
     version: "1.0.0",
   });
   const transport = new StreamableHTTPClientTransport(new URL("/mcp", origin), {
@@ -250,13 +250,13 @@ test("accepted Clerk authentication can discover and invoke the echo tool", asyn
 
   const result = await client.callTool({
     name: "echo",
-    arguments: { message: "Hello from Plutus" },
+    arguments: { message: "Hello from sh" },
   });
   assert.deepEqual(result.content, [
-    { type: "text", text: "Tool echo: Hello from Plutus" },
+    { type: "text", text: "Tool echo: Hello from sh" },
   ]);
   assert.deepEqual(result.structuredContent, {
-    message: "Hello from Plutus",
+    message: "Hello from sh",
   });
 });
 
