@@ -22,7 +22,7 @@ import {
   GET as getProtectedResourceMetadata,
   OPTIONS as optionsProtectedResourceMetadata,
 } from "../app/.well-known/oauth-protected-resource/mcp/route";
-import { createPlutusMcpHandler } from "../src/handler";
+import { createPlutusMcpHandler } from "../src/mcp/server";
 
 const host = "127.0.0.1";
 const acceptedAccessToken = "accepted-clerk-oauth-token";
