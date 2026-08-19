@@ -1,5 +1,5 @@
 {
-  "name": "@plutus/mcp-server",
+  "name": "@sh/mcp-server",
   "version": "0.1.0",
   "private": true,
   "type": "module",

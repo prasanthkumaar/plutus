@@ -1,16 +1,16 @@
-# Plutus
+# sh
 
-Plutus is a pnpm workspace for finance applications. Its first application is
-a small, server-only Model Context Protocol (MCP) server that future finance
-tools can build on.
+`sh` is my personal operating system. Like a shell, it is an interface to
+everything I build and connect.
+
+Its first application is a small Model Context Protocol (MCP) server that
+future personal tools can build on.
 
 ## Workspace
 
-- `apps/mcp` contains the stateless Next.js MCP server.
+- `apps/mcp` contains the stateless `sh-mcp` Next.js server.
 - `/mcp` exposes one read-only, idempotent `echo` tool.
 - Clerk OAuth protects the MCP endpoint.
-- There is no browser interface, deployment configuration or finance
-  integration in this foundation.
 
 ## Requirements
 
