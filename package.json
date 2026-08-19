@@ -1,15 +1,15 @@
 {
-  "name": "plutus",
+  "name": "sh",
   "private": true,
   "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "pnpm --filter @plutus/mcp-server build",
-    "dev": "pnpm --filter @plutus/mcp-server dev",
+    "build": "pnpm --filter @sh/mcp-server build",
+    "dev": "pnpm --filter @sh/mcp-server dev",
     "dev:1password": "op run --env-file=.env.schema -- pnpm dev",
-    "test": "pnpm --filter @plutus/mcp-server test",
-    "type-check": "pnpm --filter @plutus/mcp-server type-check"
+    "test": "pnpm --filter @sh/mcp-server test",
+    "type-check": "pnpm --filter @sh/mcp-server type-check"
   }
 }

@@ -1,4 +1,4 @@
-# Plutus
+# sh
 
 ## Agent skills
 
