@@ -1,7 +1,7 @@
 # sh
 
-`sh` is Pras's personal operating system. Like a shell, it is an interface to
-everything he builds and connects.
+`sh` is my personal operating system. Like a shell, it is an interface to
+everything I build and connect.
 
 Its first application is a small Model Context Protocol (MCP) server that
 future personal tools can build on.
@@ -11,10 +11,6 @@ future personal tools can build on.
 - `apps/mcp` contains the stateless `sh-mcp` Next.js server.
 - `/mcp` exposes one read-only, idempotent `echo` tool.
 - Clerk OAuth protects the MCP endpoint.
-- `/`, `/privacy` and `/terms` provide the public information required for
-  Google OAuth production compliance.
-- There is no application dashboard or personal-data integration in this
-  foundation.
 
 ## Requirements
 

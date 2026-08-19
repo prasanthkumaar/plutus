@@ -2,9 +2,9 @@ import { verifyClerkToken } from "@clerk/mcp-tools/next";
 import { auth } from "@clerk/nextjs/server";
 import { withMcpAuth } from "mcp-handler";
 
-import { createShMcpHandler } from "@/src/mcp/server";
+import { createMcpHandler } from "@/src/mcp/server";
 
-const handler = createShMcpHandler();
+const handler = createMcpHandler();
 
 const authHandler = withMcpAuth(
   handler,

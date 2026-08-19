@@ -22,7 +22,7 @@ import {
   GET as getProtectedResourceMetadata,
   OPTIONS as optionsProtectedResourceMetadata,
 } from "../app/.well-known/oauth-protected-resource/mcp/route";
-import { createShMcpHandler } from "../src/mcp/server";
+import { createMcpHandler } from "../src/mcp/server";
 
 const host = "127.0.0.1";
 const acceptedAccessToken = "accepted-clerk-oauth-token";
@@ -96,7 +96,7 @@ async function sendWebResponse(
 
 async function startApplication(): Promise<StartedApplication> {
   const mcpHandler = withMcpAuth(
-    createShMcpHandler(),
+    createMcpHandler(),
     verifyControlledClerkToken,
     {
       required: true,
